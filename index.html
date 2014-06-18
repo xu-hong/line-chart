@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>D3 Test</title>
+        <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+    </head>
+    <body>
+        <style type="text/css">
+            .dot {
+                fill: #ddd;
+            }
+            .nydot {
+                fill: #ffa500;
+            }
+
+            .meandot{
+                fill: blue;
+            }
+
+            .line {
+                fill: none;
+                stroke: #ffa500;
+            }
+            .mean.line {
+                fill: none;
+                stroke: blue;
+            }
+            .domain {
+                fill: none;
+                stroke: #ccc;
+            }
+            .tick line{
+                stroke: #ccc;
+            }
+            .tick {
+                font-size: 10px;
+            }
+        </style>
+        <h1>Strikeouts on the Rise</h1>
+        <P>What has happened over the past century?</P>
+        <div class="chart"></div>
+        <script type="text/javascript">
+            // Your beautiful D3 code will go here 
+            var margin = {top: 20, right:10, bottom:20, left:10};
+            var width = 900 - margin.right - margin.left, height = 500 - margin.top - margin.bottom;           
+            var svg = d3.select(".chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+                                                   
+
+
+            d3.csv("strikeouts.csv", function(data){
+                data.forEach(function(d){
+                    d.so = +d.so;
+                    d.year = +d.year;
+                    d.g = + d.g;
+                    d.kpg = d.so / d.g;
+                });
+
+
+            var xScale = d3.scale.linear()
+                        .domain([1900, 2012])
+                        .range([0, width]);
+            var yScale = d3.scale.linear()
+                        .domain([0, d3.max(data, function(d){return d.kpg;})])
+                        .range([height, 0]);
+
+            svg.selectAll(".dot")
+                .data(data)
+                .enter().append("circle")
+                .attr("class", "dot")
+                .attr("r", 2)
+                .attr("cx", function(d, i){return xScale(d.year);})
+                .attr("cy", function(d){return yScale(d.kpg);});
+                
+
+            var nyData = data.filter(function(d){ return d.franchise === "NYY";});
+            svg.selectAll(".nydot")
+                .data(nyData)
+                .enter().append("circle")
+                .attr("class", "nydot")
+                .attr("r", 3)
+                .attr("cx", function(d, i){return xScale(d.year);})
+                .attr("cy", function(d){return yScale(d.kpg);});
+
+            var line = d3.svg.line()
+                        .x(function(d){return xScale(d.year);})
+                        .y(function(d){return yScale(d.kpg);});
+
+            svg.append("path")
+                .attr("d", line(nyData))
+                .attr("class", "line");
+
+                
+
+            var xAxis = d3.svg.axis()
+                        .tickFormat(function(d){return d;})
+                        .scale(xScale);
+
+            svg.append("g")
+                .attr("class", "x axis")
+                .attr("transform", "translate(0," + height + ")")
+                .call(xAxis);
+
+
+            var meanData = d3.nest()
+                            .key(function(d) {return d.year;})
+                            .rollup(function(d){
+                                return d3.mean(d, function(k){return k.kpg;});
+                            })
+                            .entries(data);
+
+            meanData.forEach(function(d){
+                d.year = d.key;
+                d.kpg = d.values;
+            });
+
+            svg.selectAll(".meandot")
+                .data(meanData)
+                .enter().append("circle")
+                .attr("class", "meandot")
+                .attr("r", 3)
+                .attr("cx", function(d, i){return xScale(d.year);})
+                .attr("cy", function(d){return yScale(d.kpg);});
+
+
+            
+
+            svg.append("path")
+                .attr("d", line(meanData))
+                .attr("class", "mean line");       
+
+            console.log(meanData);
+            });
+
+
+
+        </script>
+    </body>
+</html> 
